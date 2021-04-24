@@ -34,7 +34,6 @@ def get_db_connection(db):
         return con, sys.exc_info()
     
     except:
-        # return error
         return False, sys.exc_info()
 
 def send_email(title, msg):
@@ -57,7 +56,7 @@ def send_email(title, msg):
     text = message.as_string()
     session.sendmail(sender_address, receiver_address, text)
     session.quit()
-#     print('Mail Sent')
+    print('Mail Sent')
 
 
 # This is the Subscriber

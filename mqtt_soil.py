@@ -62,7 +62,7 @@ def send_email(title, msg):
 # This is the Subscriber
 def on_connect(client, userdata, flags, rc):
     print("MQTT soil -> connected with result code "+str(rc))
-    print('------------------------------------------'  )
+    print('-----------------------------------------'  )
     client.subscribe("mqtt_soil")
 
 # This is the message manager
@@ -84,12 +84,17 @@ def on_message(client, userdata, msg):
     rx_ds18b20_temperature = rx_tupple[5].split(':')[1]
     rx_battery_voltage = rx_tupple[6].split(':')[1]
     
+    ubat100 = 4.1 # tension batterie li-ion a pleine charge
+    ubat000 = 3.6 # tension batterie li-ion déchargée
+    pente_decharge = (ubat100-ubat000)/100 # pente de décharge estimée comme linéaire
+    charge_bat = int((float(rx_battery_voltage) - ubat000) / pente_decharge)
+    
     str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
 
-    sql_txt = " ".join(["INSERT INTO soil (plant, moist, humidity_dht11, temp_soil, temp_dht11, temp_ds18b20, ubat) VALUES ('", \
+    sql_txt = " ".join(["INSERT INTO soil (plant, moist, humidity_dht11, temp_soil, temp_dht11, temp_ds18b20, ubat, charge_bat) VALUES ('", \
                         plant, "',", rx_soil_moisture, ",", rx_dht11_humidity, ",", \
                         rx_soil_temperature, ",", rx_dht11_temperature, ",", rx_ds18b20_temperature, "," , \
-                        rx_battery_voltage, ")"])
+                        rx_battery_voltage, "," , charge_bat, ")"])
 
     db_connection, err = get_db_connection("mqtt")
     db_cursor = db_connection.cursor()
@@ -119,11 +124,6 @@ def on_message(client, userdata, msg):
     s = elapsed
     
     soil_alarm_level = 950
-    
-    ubat100 = 4.1 # tension batterie li-ion a pleine charge
-    ubat000 = 3.6 # tension batterie li-ion déchargée
-    pente_decharge = (ubat100-ubat000)/100 # pente de décharge estimée comme linéaire
-    charge_bat = int((float(rx_battery_voltage) - ubat000) / pente_decharge)
 
 #     msg = str_now + '\nhumidité sol: ' + rx_soil_moisture + '\nair température: ' + rx_ds18b20_temperature + '\nhair humidité: ' + rx_dht11_humidity + \
 #           '\ntension batterie: ' + rx_battery_voltage + '\nvie batterie (j.h:m:s): ' + '{:02d}'.format(int(d)) + \
