@@ -37,6 +37,7 @@ def get_db_connection(db):
         return False, sys.exc_info()
 
 def send_email(title, msg):
+    return
 
     #The mail addresses and password
     sender_address = 'esp32jmb@gmail.com'
@@ -56,14 +57,14 @@ def send_email(title, msg):
     text = message.as_string()
     session.sendmail(sender_address, receiver_address, text)
     session.quit()
-#     print('Mail Sent')
+    print('Mail Sent')
 
 
 # This is the Subscriber
 def on_connect(client, userdata, flags, rc):
-    print("MQTT soil -> connected with result code "+str(rc))
+    print("Rhodo -> connected with result code " + str(rc))
     print('-----------------------------------------'  )
-    client.subscribe("mqtt_soil")
+    client.subscribe("rhodo_all")
 
 # This is the message manager
 def on_message(client, userdata, msg):
@@ -76,24 +77,22 @@ def on_message(client, userdata, msg):
     plant = 'rhodo'
     
     rx_tupple = rx_msg.split(',')
-    rx_head = rx_tupple[0] + ' '
-    rx_soil_moisture = rx_tupple[1].split(':')[1]
-    rx_dht11_humidity = rx_tupple[2].split(':')[1]
-    rx_soil_temperature = rx_tupple[3].split(':')[1]
-    rx_dht11_temperature = rx_tupple[4].split(':')[1]
-    rx_ds18b20_temperature = rx_tupple[5].split(':')[1]
-    rx_battery_voltage = rx_tupple[6].split(':')[1]
+    print(rx_tupple)
+    rx_sol_moisture = rx_tupple[0]#.split(':')[1]
+    rx_air_temperature = rx_tupple[2]#.split(':')[1]
+    rx_sol_temperature = rx_tupple[1]#.split(':')[1]
+    rx_battery_voltage = rx_tupple[3]#.split(':')[1]
     
     ubat100 = 4.1 # tension batterie li-ion a pleine charge
     ubat000 = 3.6 # tension batterie li-ion déchargée
     pente_decharge = (ubat100-ubat000)/100 # pente de décharge estimée comme linéaire
-    charge_bat = int((float(rx_battery_voltage) - ubat000) / pente_decharge)
+    charge_bat = str(int((float(rx_battery_voltage) - ubat000) / pente_decharge))
     
     str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
 
-    sql_txt = " ".join(["INSERT INTO soil (plant, moist, humidity_dht11, temp_soil, temp_dht11, temp_ds18b20, ubat, charge_bat) VALUES ('", \
-                        plant, "',", rx_soil_moisture, ",", rx_dht11_humidity, ",", \
-                        rx_soil_temperature, ",", rx_dht11_temperature, ",", rx_ds18b20_temperature, "," , \
+    sql_txt = " ".join(["INSERT INTO soil (plant, sol_moist, sol_temp, air_temp, ubat, charge_bat) VALUES ('", \
+                        plant, "',", rx_sol_moisture, ",", rx_sol_temperature, ",", \
+                        rx_air_temperature, "," , \
                         rx_battery_voltage, "," , charge_bat, ")"])
 
     db_connection, err = get_db_connection("mqtt")
@@ -124,24 +123,19 @@ def on_message(client, userdata, msg):
     s = elapsed
     
     soil_alarm_level = 950
-
-#     msg = str_now + '\nhumidité sol: ' + rx_soil_moisture + '\nair température: ' + rx_ds18b20_temperature + '\nhair humidité: ' + rx_dht11_humidity + \
-#           '\ntension batterie: ' + rx_battery_voltage + '\nvie batterie (j.h:m:s): ' + '{:02d}'.format(int(d)) + \
-#           '.' '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m)) +':' + '{:02d}'.format(int(s))
     
     msg = str_now \
-          + '\ntempérature terre:    ' + rx_ds18b20_temperature + ' [°C]'\
-          + '\nhumidité terre:       ' + rx_soil_moisture + ' [-]'\
-          + '\n\ntempérature air:      ' + rx_dht11_temperature + ' [°C]'\
-          + '\nhumidité air:         ' + rx_dht11_humidity + ' [%]'\
-          + '\n\ntension batterie:     ' + rx_battery_voltage  + ' [V]'\
+          + '\ntempérature terre:    ' + rx_sol_temperature + ' [°C]'\
+          + '\nhumidité terre:       ' + rx_sol_moisture + ' [-]'\
+          + '\ntempérature air:      ' + rx_air_temperature + ' [°C]'\
+          + '\ntension batterie:     ' + rx_battery_voltage  + ' [V]'\
           + '\ncharge batterie:      ' + str(charge_bat) + ' [%]'\
           + '\nvie batterie (j-h:m): ' + '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m)) \
           + '\n-------------------------------------'  
     print(msg)
     
-    if int(rx_soil_moisture) < soil_alarm_level:
-        title = 'Rhodos: time to water the rhododendrons, moisture = ' + str(rx_soil_moisture) + ' [-]'
+    if int(rx_sol_moisture) < soil_alarm_level:
+        title = 'Rhodos: time to water the rhododendrons, moisture = ' + str(rx_sol_moisture) + ' [-]'
         send_email(title, msg)
         
     if float(rx_battery_voltage) < ubat000:
