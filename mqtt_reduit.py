@@ -20,6 +20,8 @@ MYSQL_DATABASE_PW = 'mablonde'
 MYSQL_HOST_NAME = 'localhost'
 
 MQTT_TOPIC_SUB = 'reduit_temp'
+MQTT_TOPIC_PUB_CONGELO = 'reduit_congelo'
+MQTT_TOPIC_PUB_TEMP = 'reduit_temp'
 MQTT_SERVER_IP = '192.168.1.108'
 MQTT_PORT = 1883
 MQTT_KEEPALIVE = 60
@@ -96,23 +98,38 @@ def on_message(client, userdata, msg):
     db_cursor.execute(sql_txt)
     
     rx_msg = msg.payload.decode()[:-1]
-    rx_tupple = rx_msg.split(',')
-    for rx_item in rx_tupple:
-        mes = rx_item.split(':')
-        sql_txt = "".join(["INSERT INTO reduit (sensorid, sensorval) VALUES ('", mes[0].strip(), "',", mes[1], ")"])
-        db_cursor.execute(sql_txt)
-        if mes[0].strip() == SENSOR_ID_TEMP_CONGELATEUR and float(mes[1].replace('"','')) > CONGELATEUR_ALARM_LEVEL:
-            title = 'ALARME CONGELATEUR'
-            msg = 'La température du congélateur aumente. Elle atteint maintenant: ' + mes[1].replace('"','') + '°C'
-            print(mes[1])
-            print('\n', title, '\n', msg, '\n')
-            send_email(title, msg), 
-        print(str_now, sql_txt)
-    print('----------------------------------------------------------------------------------------------------')
-            
-    db_connection.commit()
-    db_cursor.close()
-    db_connection.close()
+#     print('rx_msg', rx_msg, rx_msg[:2])
+    if rx_msg[:2] == '28':
+        rx_tupple = rx_msg.split(',')
+        for rx_item in rx_tupple:
+            mes = rx_item.split(':')
+            sql_txt = "".join(["INSERT INTO reduit (sensorid, sensorval) VALUES ('", mes[0].strip(), "',", mes[1], ")"])
+            db_cursor.execute(sql_txt)
+            if mes[0].strip() == SENSOR_ID_TEMP_CONGELATEUR and float(mes[1].replace('"','')) > CONGELATEUR_ALARM_LEVEL:
+                title = 'ALARME CONGELATEUR'
+                msg = 'La température du congélateur est critique. Elle atteint maintenant: ' + mes[1].replace('"','') + '°C'
+                print(mes[1])
+                print('\n', title, '\n', msg, '\n')
+                send_email(title, msg)
+                
+            # publish to Jeedom
+            if mes[0].strip() == SENSOR_ID_TEMP_CONGELATEUR:
+                client.publish(MQTT_TOPIC_PUB_CONGELO, str(mes[1]))
+                print('MQTT_TOPIC_PUB_CONGELO:', MQTT_TOPIC_PUB_CONGELO, str(mes[1]))
+                 
+            if mes[0].strip() == SENSOR_ID_TEMP_REDUIT:
+                client.publish(MQTT_TOPIC_PUB_TEMP, str(mes[1]))
+                print('MQTT_TOPIC_PUB_TEMP:', MQTT_TOPIC_PUB_TEMP, str(mes[1]))
+                
+#             print(str_now, sql_txt)
+#         for rx_item in rx_tupple:
+#             mes = rx_item.split(':')
+#             print(mes[0])
+#         print('----------------------------------------------------------------------------------------------------')
+                
+        db_connection.commit()
+        db_cursor.close()
+        db_connection.close()
 
 client = mqtt.Client()
 client.connect(MQTT_SERVER_IP, MQTT_PORT, MQTT_KEEPALIVE)
@@ -121,3 +138,9 @@ client.on_connect = on_connect
 client.on_message = on_message
 
 client.loop_forever()
+
+# RRR: 28-ff70563861409a None
+# RRR: 28-ff7fe4386140be 25.8125
+# 
+# 28-fe258316039f
+# 28-f0298316032f

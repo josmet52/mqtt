@@ -2,36 +2,36 @@
 -- 21.04.2021 Joseph Metrailler
 -- --------------------------------------------------------------
 -- si elle existe, supprimer la db mqtt existante et la recreer
---DROP DATABASE IF EXISTS mqtt;
---CREATE DATABASE mqtt;
+-- DROP DATABASE IF EXISTS mqtt;
+-- CREATE DATABASE mqtt;
 USE mqtt;
 -- --------------------------------------------------------------
 -- table soil pour l'humidite de la terre 
 CREATE TABLE soil
 (
-  id int NOT NULL AUTO_INCREMENT,
-  time_stamp timestamp NOT NULL,
-  plant varchar(10) NOT NULL,
-  sol_moist double NOT NULL,
-  sol_temp double NOT NULL,
-  air_humidity double NOT NULL,
-  air_temp double NOT NULL,
+  id INT NOT NULL AUTO_INCREMENT,
+  time_stamp TIMESTAMP NOT NULL,
+  plant VARCHAR(10) NOT NULL,
+  sol_moist DOUBLE NOT NULL,
+  sol_temp DOUBLE NOT NULL,
+  DOUBLE DOUBLE NOT NULL,
   ubat double NOT NULL,
-  charge_bat double NOT NULL,
+  charge_bat DOUBLE NOT NULL,
+  PRIMARY KEY (id),
   INDEX i_date (time_stamp),
   INDEX i_id (id),
   UNIQUE(id)
 );
 -- table reduit pour les temperature congelo et reduit
 -- --------------------------------------------------------------
---CREATE TABLE reduit
---(
---  id int NOT NULL AUTO_INCREMENT,
---  time_stamp timestamp NOT NULL,
---  PRIMARY KEY (id),
---  INDEX i_date (time_stamp),
---  INDEX i_id (id),
---  UNIQUE(id),
---  sensorid varchar(20) NOT NULL,
---  sensorval double NOT NULL
---);
+CREATE TABLE reduit
+(
+  id INT NOT NULL AUTO_INCREMENT,
+  time_stamp TIMESTAMP NOT NULL,
+  sensorid VARCHAR(20) NOT NULL,
+  sensorval DOUBLE NOT NULL
+  PRIMARY KEY (id),
+  INDEX i_date (time_stamp),
+  INDEX i_id (id),
+  UNIQUE(id),
+);
