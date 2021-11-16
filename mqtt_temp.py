@@ -9,6 +9,23 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+# mysql
+MYSQL_IP = '192.168.1.139'
+MYSQL_USERNAME = 'pi'
+MYSQL_PW = 'mablonde'
+MYSQL_HOSTNAME = 'localhost'
+# mail
+MAIL_SENDER_ADRESS = 'esp32jmb@gmail.com'
+MAIL_SENDER_PW = 'mablonde'
+MAIL_RECEIVER_ADRESS = 'jmetra@outlook.com'
+# Mosquitto MQTT
+MQTT_TOPIC = 'lib_jo_demo'
+MQTT_IP = '192.168.1.108'
+MQTT_PLANT = 'lib_demo'
+# battery
+UBAT_100 = 4.2
+UBAT_0 = 3.6
+
 def get_db_connection(db):
     
     # get the local IP adress
@@ -17,10 +34,10 @@ def get_db_connection(db):
     local_ip = s.getsockname()[0]
     s.close()
     
-    database_username = "pi"  # YOUR MYSQL USERNAME, USUALLY ROOT
-    database_password = "mablonde"  # YOUR MYSQL PASSWORD
-    host_name = "localhost"
-    server_ip = '192.168.1.139'
+    database_username = MYSQL_USERNAME  # YOUR MYSQL USERNAME, USUALLY ROOT
+    database_password = MYSQL_PW  # YOUR MYSQL PASSWORD
+    host_name = MYSQL_HOSTNAME
+    server_ip = MYSQL_IP
 
 
     # verify if the mysql server is ok and the db avaliable
@@ -39,10 +56,10 @@ def get_db_connection(db):
 def send_email(title, msg):
     return
 
-    #The mail addresses and password
-    sender_address = 'esp32jmb@gmail.com'
-    sender_pass = 'mablonde'
-    receiver_address = 'jmetra@outlook.com'
+    #The mail initialisation
+    sender_address = MAIL_SENDER_ADRESS
+    sender_pass = MAIL_SENDER_PW
+    receiver_address = MAIL_RECEIVER_ADRESS
     #Setup the MIME
     message = MIMEMultipart()
     message['From'] = sender_address
@@ -62,29 +79,29 @@ def send_email(title, msg):
 
 # This is the Subscriber
 def on_connect(client, userdata, flags, rc):
-    print("rhodo -> connected with result code " + str(rc))
+    print("Rhodo -> connected with result code " + str(rc))
     print('-----------------------------------------'  )
-    client.subscribe("rhodo")
+    client.subscribe(MQTT_TOPIC)
 
 # This is the message manager
 def on_message(client, userdata, msg):
     
-    # initialise database access
-    mysql_ip = "192.168.1.139"
-    
     rx_msg = msg.payload.decode()
-    
-    plant = 'rhodo'
+    print(rx_msg)
+    plant = MQTT_PLANT
     
     rx_tupple = rx_msg.split(',')
-#     print(rx_tupple)
-    rx_sol_moisture = rx_tupple[0]#.split(':')[1]
-    rx_air_temperature = rx_tupple[2]#.split(':')[1]
-    rx_sol_temperature = rx_tupple[1]#.split(':')[1]
-    rx_battery_voltage = rx_tupple[3]#.split(':')[1]
+    print(rx_tupple)
+    for l in rx_tupple:
+        if '=' in l:
+            le = l.split('=')
+            c_name = le[0]
+            c_val = c[1]
+            print('c_name=',c_name, 'c_val=', c_val)
+        
     
-    ubat100 = 4.1 # tension batterie li-ion a pleine charge
-    ubat000 = 3.6 # tension batterie li-ion déchargée
+    ubat100 = UBAT_100 # tension batterie li-ion a pleine charge
+    ubat000 = UBAT_0 # tension batterie li-ion déchargée
     pente_decharge = (ubat100-ubat000)/100 # pente de décharge estimée comme linéaire
     charge_bat = str(int((float(rx_battery_voltage) - ubat000) / pente_decharge))
     
@@ -126,7 +143,7 @@ def on_message(client, userdata, msg):
     
     msg = str_now \
           + '\ntempérature terre:    ' + rx_sol_temperature + ' [°C]'\
-          + '\nhumidité terre:       ' + rx_sol_moisture + ' [%]'\
+          + '\nhumidité terre:       ' + rx_sol_moisture + ' [-]'\
           + '\ntempérature air:      ' + rx_air_temperature + ' [°C]'\
           + '\ntension batterie:     ' + rx_battery_voltage  + ' [V]'\
           + '\ncharge batterie:      ' + str(charge_bat) + ' [%]'\
@@ -134,7 +151,7 @@ def on_message(client, userdata, msg):
           + '\n-------------------------------------'  
     print(msg)
     
-    if float(rx_sol_moisture) < soil_alarm_level:
+    if int(rx_sol_moisture) < soil_alarm_level:
         title = 'Rhodos: time to water the rhododendrons, moisture = ' + str(rx_sol_moisture) + ' [-]'
 #         send_email(title, msg)
         
@@ -142,10 +159,12 @@ def on_message(client, userdata, msg):
         title = 'Rhodos: time to recharge battery, tension = ' + str(rx_battery_voltage) + ' [V]'
         send_email(title, msg)
 
-client = mqtt.Client()
-client.connect("192.168.1.108",1883,60)
+if __name__ == '__main__':
 
-client.on_connect = on_connect
-client.on_message = on_message
+    client = mqtt.Client()
+    client.connect("192.168.1.108",1883,60)
 
-client.loop_forever()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    client.loop_forever()
