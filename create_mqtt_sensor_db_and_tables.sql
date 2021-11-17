@@ -11,10 +11,10 @@ CREATE TABLE home_sensors
 (
   id INT NOT NULL AUTO_INCREMENT,
   time_stamp TIMESTAMP NOT NULL,
-  topic VARCHAR(20) NOT NULL;
-  piece VARCHAR(20) NOT NULL;
-  grandeur VARCHAR(20) NOT NULL
-  valeur DOUBLE NOT NULL;
+  topic VARCHAR(20) NOT NULL,
+  piece VARCHAR(20) NOT NULL,
+  grandeur VARCHAR(20) NOT NULL,
+  valeur DOUBLE NOT NULL,
   PRIMARY KEY (id),
   INDEX i_date (time_stamp),
   INDEX i_id (id),
