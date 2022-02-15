@@ -178,7 +178,7 @@ def on_message(client, userdata, msg):
                   + ' - temp:' + '{:.1f}'.format(temp) + '°C'
                   + ' - hum:' + '{:.0f}'.format(hum) + '%'
                   + ' - pres:' + '{:.0f}'.format(pres) + 'mbar'
-                  + ' - bat:' + '{:.2f}'.format(ubat)) + 'V'
+                  + ' - bat:' + '{:.2f}'.format(ubat) + 'V')
 
 client = mqtt.Client()
 client.connect("192.168.1.108",1883,60)
