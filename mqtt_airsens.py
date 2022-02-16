@@ -124,6 +124,34 @@ def record_data_in_db(rx_msg):
     db_cursor.close()
     db_connection.close()
 
+def get_now_and_elapsed(local):
+    
+    db_connection, err = get_db_connection("airsens")
+    db_cursor = db_connection.cursor()
+
+    sql_duree_debut = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id ASC LIMIT 1;'
+    db_cursor.execute(sql_duree_debut)
+    date_start = db_cursor.fetchall()
+
+    sql_duree_fin = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id DESC LIMIT 1;'
+    db_cursor.execute(sql_duree_fin)
+    date_end = db_cursor.fetchall()
+
+    db_cursor.close()
+    db_connection.close()
+
+    str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
+    elapsed = ((date_end[0][0] - date_start[0][0]).total_seconds())
+    d = elapsed // (24 * 3600)
+    elapsed = elapsed % (24 * 3600)
+    h = elapsed // 3600
+    elapsed %= 3600
+    m = elapsed // 60
+    elapsed %= 60
+    s = elapsed
+    str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
+    return str_now, str_elapsed
+
 # This is the message manager
 def on_message(client, userdata, msg):
     
@@ -137,37 +165,45 @@ def on_message(client, userdata, msg):
         idx, local, temp, hum, pres, ubat, crc_v = decode_msg(rx_msg)
         record_data_in_db(rx_msg)
         
+#         db_connection, err = get_db_connection("airsens")
+#         db_cursor = db_connection.cursor()
+# 
+#         sql_duree_debut = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id ASC LIMIT 1;'
+#         db_cursor.execute(sql_duree_debut)
+#         date_start = db_cursor.fetchall()
+# 
+#         sql_duree_fin = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id DESC LIMIT 1;'
+#         db_cursor.execute(sql_duree_fin)
+#         date_end = db_cursor.fetchall()
+# 
+#         db_cursor.close()
+#         db_connection.close()
+# 
+#         str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
+#         elapsed = ((date_end[0][0] - date_start[0][0]).total_seconds())
+#         d = elapsed // (24 * 3600)
+#         elapsed = elapsed % (24 * 3600)
+#         h = elapsed // 3600
+#         elapsed %= 3600
+#         m = elapsed // 60
+#         elapsed %= 60
+#         s = elapsed
+
+        str_now, str_elapsed = get_now_and_elapsed(local)
         charge_bat = int((float(ubat) - UBAT_0) / ((UBAT_100 - UBAT_0)/100))
-        
-        db_connection, err = get_db_connection("airsens")
-        db_cursor = db_connection.cursor()
-
-        sql_duree_debut = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id ASC LIMIT 1;'
-        db_cursor.execute(sql_duree_debut)
-        date_start = db_cursor.fetchall()
-
-        sql_duree_fin = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id DESC LIMIT 1;'
-        db_cursor.execute(sql_duree_fin)
-        date_end = db_cursor.fetchall()
-
-        db_cursor.close()
-        db_connection.close()
-
-        str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
-        elapsed = ((date_end[0][0] - date_start[0][0]).total_seconds())
-        d = elapsed // (24 * 3600)
-        elapsed = elapsed % (24 * 3600)
-        h = elapsed // 3600
-        elapsed %= 3600
-        m = elapsed // 60
-        elapsed %= 60
-        s = elapsed
+        room = local
 
         if local == 'bu' or local == 'ex' or local == 'sa' or local == 'B9':
-            msg = 'room:' + local + ' - temp:' + '{:.1f}'.format(temp) + '°C - hum:' + '{:.0f}'.format(hum)
+#             if local == 'bu' : room = 'office    '
+#             elif local == 'sa': room = 'salon    '
+#             elif local == 'ex': room = 'outside  '
+#             elif local == 'B9': room = 'office b9'
+            
+            msg = 'room:' + room + ' - temp:' + '{:.1f}'.format(temp) + '°C - hum:' + '{:.0f}'.format(hum)
             msg += '% - pres:' + '{:.0f}'.format(pres) + 'hPa - bat:' + '{:.2f}'.format(ubat) + 'V'
             msg += ' - battery load:' + str(charge_bat) + '%'
-            msg += ' - battery life (j-h:m):' + '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
+#             msg += ' - battery life(j-h:m):' + '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
+            msg += ' - battery life(j-h:m):' + str_elapsed
             msg += ' - measure time:' + str_now
             print(msg)
 
