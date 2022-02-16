@@ -93,12 +93,13 @@ def crc(msg):
             crc_0 += ord(char)
         else:
             crc_1 += ord(char)
-    crc = crc_0 + crc_1 * 3
-    if crc < 10 : crc *= 10
-    return str(crc)[-2:]
+    v_crc = crc_0 + crc_1 * 3
+    if v_crc < 10 : v_crc *= 10
+    return str(v_crc)[-2:]
 
 # This is the Subscriber
 def on_connect(client, userdata, flags, rc):
+#     print('client, userdata, flags, rc:', client, userdata, flags, rc)
     print("airsens -> connected with result code " + str(rc))
     print('-----------------------------------------'  )
     client.subscribe("airsens_test")
@@ -152,6 +153,7 @@ def on_message(client, userdata, msg):
         db_cursor.close()
         db_connection.close()
 
+        str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
         elapsed = ((date_end[0][0] - date_start[0][0]).total_seconds())
         d = elapsed // (24 * 3600)
         elapsed = elapsed % (24 * 3600)
@@ -162,10 +164,11 @@ def on_message(client, userdata, msg):
         s = elapsed
 
         if local == 'bu' or local == 'ex' or local == 'sa' or local == 'B9':
-            msg = 'local:' + local + ' - temp:' + '{:.1f}'.format(temp) + '°C - hum:' + '{:.0f}'.format(hum)
-            msg += '% - pres:' + '{:.0f}'.format(pres) + 'mbar - bat:' + '{:.2f}'.format(ubat) + 'V'
-            msg += ' - charge batterie:' + str(charge_bat) + '%'
-            msg += ' - vie batterie (j-h:m): ' + '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
+            msg = 'room:' + local + ' - temp:' + '{:.1f}'.format(temp) + '°C - hum:' + '{:.0f}'.format(hum)
+            msg += '% - pres:' + '{:.0f}'.format(pres) + 'hPa - bat:' + '{:.2f}'.format(ubat) + 'V'
+            msg += ' - battery load:' + str(charge_bat) + '%'
+            msg += ' - battery life (j-h:m):' + '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
+            msg += ' - measure time:' + str_now
             print(msg)
 
             if float(ubat) < UBAT_0:
@@ -174,10 +177,10 @@ def on_message(client, userdata, msg):
                 print('---------------------------------------------')
                 send_email(title, msg)
         else:
-            print('local:' + local
+            print('room:' + local
                   + ' - temp:' + '{:.1f}'.format(temp) + '°C'
                   + ' - hum:' + '{:.0f}'.format(hum) + '%'
-                  + ' - pres:' + '{:.0f}'.format(pres) + 'mbar'
+                  + ' - pres:' + '{:.0f}'.format(pres) + 'hPa'
                   + ' - bat:' + '{:.2f}'.format(ubat) + 'V')
 
 client = mqtt.Client()
